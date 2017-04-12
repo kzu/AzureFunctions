@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">xvs</title>
+  <id>xvs</id>
+  <updated>2012-11-06T22:19:45Z</updated>
+  <entry>
+    <id>2bde3d56-7ac0-4d8d-8ae8-794b631b0b27</id>
+    <title type="text">Example Extension</title>
+    <summary type="text">An example of hosting a VS extension for my team.</summary>
+    <published>2012-11-02T10:43:32-05:00</published>
+    <updated>2012-11-06T11:31:29-06:00</updated>
+    <author>
+      <name>Microsoft</name>
+    </author>
+    <content type="application/octet-stream" src="Example.vsix" />
+    <Vsix xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.microsoft.com/developer/vsx-syndication-schema/2010">
+      <Id>2bde3d56-7ac0-4d8d-8ae8-794b631b0b27</Id>
+      <Version>1.2</Version>
+      <References>Visual Studio MPF 11.0\Microsoft.VisualStudio.MPF.11.0\[11.0,);</References>
+      <Rating xsi:nil="true" />
+      <RatingCount xsi:nil="true" />
+      <DownloadCount xsi:nil="true" />
+    </Vsix>
+  </entry>
+</feed>
