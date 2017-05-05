@@ -133,7 +133,7 @@ public class VisualStudioGallery
                     {
                         try
                         {
-                            var iconEntry = archive.GetEntry(icon.Value);
+                            var iconEntry = archive.GetEntry(icon.Value.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
                             if (iconEntry != null)
                             {
                                 using (var iconStream = iconEntry.Open())

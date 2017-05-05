@@ -77,8 +77,8 @@ namespace Tests
             Assert.True(feed.Root.Elements(VisualStudioGallery.AtomNs + "entry").Count() == 1, feed.Root.ToString());
         }
 
-        // [InlineData(@"[PATH-TO-RANDOM-VSIX")]
-        // [Theory]
+        [InlineData(@"C:\Users\kzu\Downloads\master\Xamarin.Android.Sdk.7.2.99.79.vsix")]
+        [Theory]
         public void WhenProcessingVsix(string vsixFile)
         {
             var gallery = new VisualStudioGallery("https://devdiv.blob.core.windows.net/alpha/");
@@ -93,8 +93,12 @@ namespace Tests
                 updatedFeed.Position = 0;
 
                 var feed = XDocument.Load(updatedFeed);
+                var xmlns = new XmlNamespaceManager(new NameTable());
+                xmlns.AddNamespace("a", VisualStudioGallery.AtomNs.NamespaceName);
+                xmlns.AddNamespace("x", VisualStudioGallery.GalleryNs.NamespaceName);
 
                 Assert.True(feed.Root.Elements(VisualStudioGallery.AtomNs + "entry").Count() == 1, feed.Root.ToString());
+                Assert.Equal(gallery.StorageBaseUrl + Path.GetFileNameWithoutExtension(vsixFile) + ".png", (string)feed.XPathEvaluate("string(a:feed/a:entry/a:link[@rel = 'icon']/@href)", xmlns));
             }
         }
 
