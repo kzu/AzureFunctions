@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.IO.Packaging;
+using System.IO.Compression;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
@@ -95,62 +95,74 @@ public class VisualStudioGallery
 
         updated.Value = XmlConvert.ToString(DateTimeOffset.UtcNow);
 
-        using (var package = Package.Open(vsixBlob))
+        using (var archive = new ZipArchive(vsixBlob, ZipArchiveMode.Read))
         {
-            using (var stream = package.GetPart(new Uri("/extension.vsixmanifest", UriKind.Relative)).GetStream())
+            var zipEntry = archive.GetEntry("extension.vsixmanifest");
+            if (zipEntry != null)
             {
-                var manifest = XDocument.Load(stream).Root;
-                var metadata = manifest.Element(VsixNs + "Metadata");
-                var identity = metadata.Element(VsixNs + "Identity");
-                var id = identity.Attribute("Id").Value;
-                var version = identity.Attribute("Version").Value;
-
-                var entry = atom.Elements(AtomNs + "entry").FirstOrDefault(x => x.Element(AtomNs + "id")?.Value == id);
-                if (entry != null)
-                    entry.Remove();
-
-                entry = new XElement(AtomNs + "entry",
-                    new XElement(AtomNs + "id", id),
-                    new XElement(AtomNs + "title", new XAttribute("type", "text"), metadata.Element(VsixNs + "DisplayName").Value),
-                    new XElement(AtomNs + "link", 
-                        new XAttribute("rel", "alternate"), 
-                        new XAttribute("href", $"{StorageBaseUrl}{vsixBlobName}.vsix")),
-                    new XElement(AtomNs + "summary", new XAttribute("type", "text"), metadata.Element(VsixNs + "Description").Value),
-                    new XElement(AtomNs + "published", XmlConvert.ToString(DateTimeOffset.UtcNow)),
-                    new XElement(AtomNs + "updated", XmlConvert.ToString(DateTimeOffset.UtcNow)),
-                    new XElement(AtomNs + "author",
-                        new XElement(AtomNs + "name", identity.Attribute("Publisher").Value)),
-                    new XElement(AtomNs + "content", 
-                        new XAttribute("type", "application/octet-stream"), 
-                        new XAttribute("src", $"{StorageBaseUrl}{vsixBlobName}.vsix"))
-                );
-
-                var icon = metadata.Element(VsixNs + "Icon");
-                if (icon != null)
+                using (var stream = zipEntry.Open())
                 {
-                    using (var iconStream = package.GetPart(new Uri("/" + icon.Value, UriKind.Relative)).GetStream())
+                    var manifest = XDocument.Load(stream).Root;
+                    var metadata = manifest.Element(VsixNs + "Metadata");
+                    var identity = metadata.Element(VsixNs + "Identity");
+                    var id = identity.Attribute("Id").Value;
+                    var version = identity.Attribute("Version").Value;
+
+                    var entry = atom.Elements(AtomNs + "entry").FirstOrDefault(x => x.Element(AtomNs + "id")?.Value == id);
+                    if (entry != null)
+                        entry.Remove();
+
+                    entry = new XElement(AtomNs + "entry",
+                        new XElement(AtomNs + "id", id),
+                        new XElement(AtomNs + "title", new XAttribute("type", "text"), metadata.Element(VsixNs + "DisplayName").Value),
+                        new XElement(AtomNs + "link",
+                            new XAttribute("rel", "alternate"),
+                            new XAttribute("href", $"{StorageBaseUrl}{vsixBlobName}.vsix")),
+                        new XElement(AtomNs + "summary", new XAttribute("type", "text"), metadata.Element(VsixNs + "Description").Value),
+                        new XElement(AtomNs + "published", XmlConvert.ToString(DateTimeOffset.UtcNow)),
+                        new XElement(AtomNs + "updated", XmlConvert.ToString(DateTimeOffset.UtcNow)),
+                        new XElement(AtomNs + "author",
+                            new XElement(AtomNs + "name", identity.Attribute("Publisher").Value)),
+                        new XElement(AtomNs + "content",
+                            new XAttribute("type", "application/octet-stream"),
+                            new XAttribute("src", $"{StorageBaseUrl}{vsixBlobName}.vsix"))
+                    );
+
+                    var icon = metadata.Element(VsixNs + "Icon");
+                    if (icon != null)
                     {
-                        iconStream.CopyTo(updatedIcon);
+                        try
+                        {
+                            var iconEntry = archive.GetEntry(icon.Value);
+                            if (iconEntry != null)
+                            {
+                                using (var iconStream = iconEntry.Open())
+                                {
+                                    iconStream.CopyTo(updatedIcon);
+                                }
+
+                                entry.Add(new XElement(AtomNs + "link",
+                                    new XAttribute("rel", "icon"),
+                                    new XAttribute("href", $"{StorageBaseUrl}{vsixBlobName}.png")));
+                            }
+                        }
+                        catch { }
                     }
 
-                    entry.Add(new XElement(AtomNs + "link",
-                        new XAttribute("rel", "icon"),
-                        new XAttribute("href", $"{StorageBaseUrl}{vsixBlobName}.png")));
-                }
+                    var vsix = new XElement(GalleryNs + "Vsix",
+                        new XElement(GalleryNs + "Id", id),
+                        new XElement(GalleryNs + "Version", version),
+                        new XElement(GalleryNs + "References")
+                    );
 
-                var vsix = new XElement(GalleryNs + "Vsix",
-                    new XElement(GalleryNs + "Id", id),
-                    new XElement(GalleryNs + "Version", version),
-                    new XElement(GalleryNs + "References")
-                );
+                    entry.Add(vsix);
+                    atom.AddFirst(entry);
 
-                entry.Add(vsix);
-                atom.AddFirst(entry);
-
-                using (var writer = XmlWriter.Create(updatedFeed, new XmlWriterSettings { Indent = true }))
-                {
-                    atom.WriteTo(writer);
-                    writer.Flush();
+                    using (var writer = XmlWriter.Create(updatedFeed, new XmlWriterSettings { Indent = true }))
+                    {
+                        atom.WriteTo(writer);
+                        writer.Flush();
+                    }
                 }
             }
         }

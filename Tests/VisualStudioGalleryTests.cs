@@ -77,6 +77,28 @@ namespace Tests
             Assert.True(feed.Root.Elements(VisualStudioGallery.AtomNs + "entry").Count() == 1, feed.Root.ToString());
         }
 
+        // [InlineData(@"[PATH-TO-RANDOM-VSIX")]
+        // [Theory]
+        public void WhenProcessingVsix(string vsixFile)
+        {
+            var gallery = new VisualStudioGallery("https://devdiv.blob.core.windows.net/alpha/");
+
+            using (var vsix = File.OpenRead(vsixFile))
+            {
+                var updatedFeed = new MemoryStream();
+                var currentFeed = new MemoryStream(new byte[0]);
+
+                gallery.UpdateFeed(vsix, Path.GetFileNameWithoutExtension(vsixFile), currentFeed, updatedFeed, new MemoryStream());
+
+                updatedFeed.Position = 0;
+
+                var feed = XDocument.Load(updatedFeed);
+
+                Assert.True(feed.Root.Elements(VisualStudioGallery.AtomNs + "entry").Count() == 1, feed.Root.ToString());
+            }
+        }
+
+
         [Fact]
         public void WhenFeedIsEmptyThenCreatesFeed()
         {
