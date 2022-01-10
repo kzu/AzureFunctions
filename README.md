@@ -2,6 +2,8 @@
 
 Little Azure Functions helpers, samples, spikes, etc.
 
+> NOTE: superseeded by https://github.com/devlooped/vsgallery
+
 ## VisualStudioGallery
 
 This package makes it trivial to create a [custom Visual Studio gallery](https://msdn.microsoft.com/en-us/library/hh266746.aspx) 
